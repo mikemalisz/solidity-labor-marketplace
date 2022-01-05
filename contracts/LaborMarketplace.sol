@@ -91,4 +91,8 @@ contract LaborMarketplace {
     function isPendingJobId(uint jobId) private view returns (bool) {
         return pendingJobs[jobId].job.jobId != 0;
     }
+
+    function getActiveJobCount() public view returns (uint) {
+        return activeJobIds.length;
+    }
 }
