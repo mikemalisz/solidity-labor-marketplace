@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./IdManager.sol";
 
-enum JobState { Available, PendingCompletion }
+enum JobStatus { Open, PendingCompletion, Completed }
 
 struct JobInformation {
     uint jobId;
@@ -11,13 +11,7 @@ struct JobInformation {
     uint bounty;
     string name;
     string description;
-    JobState state;
-}
-
-struct PendingCompletedWork {
-    JobInformation job;
-    address worker;
-    string work;
+    JobStatus status;
 }
 
 struct CompletedWork {
@@ -30,8 +24,10 @@ contract LaborMarketplace {
     IdManager jobIdManager = new IdManager();
 
     uint[] public activeJobIds;
-    mapping(uint => JobInformation) availableJobs;
-    mapping(uint => PendingCompletedWork) pendingJobs;
+    uint[] public completedJobIds;
+
+    mapping(uint => JobInformation) jobs;
+    mapping(uint => CompletedWork) submittedWork;
 
     function createJob(string memory name, string memory description) public payable {
         uint jobId = jobIdManager.createId();
@@ -42,64 +38,64 @@ contract LaborMarketplace {
                 bounty: msg.value,
                 name: name,
                 description: description,
-                state: JobState.Available
+                status: JobStatus.Open
             }
         );
 
-        availableJobs[jobId] = newJob;
+        jobs[jobId] = newJob;
         activeJobIds.push(jobId);
     }
 
-    function submitWork(uint jobId, string memory work) public {
-        JobInformation memory job = getAvailableJob(jobId);
+    function submitWork(uint jobId, string memory data) public jobExists(jobId) {
+        JobInformation storage job = jobs[jobId];
+        require(job.status == JobStatus.Open, "Job is not currently accepting work");
 
-        PendingCompletedWork memory pendingWork = PendingCompletedWork({
-            job: job,
+        CompletedWork memory work = CompletedWork({
+            jobId: jobId,
             worker: msg.sender,
-            work: work
+            data: data
         });
 
-        pendingJobs[jobId] = pendingWork;
-        delete availableJobs[jobId];
+        submittedWork[jobId] = work;
+        job.status = JobStatus.PendingCompletion;
     }
 
-    function completeJob(uint jobId, bool acceptWork) public {
-        PendingCompletedWork memory pendingJob = getPendingJob(jobId);
-        require(pendingJob.job.customer == msg.sender, "Must be job's original customer");
+    function completeJob(uint jobId, bool acceptWork) public jobExists(jobId) {
+        JobInformation storage job = jobs[jobId];
+        require(job.customer == msg.sender, "Must be job's original customer");
+        
+        CompletedWork memory work = submittedWork[jobId];
+        require(work.jobId != 0, "Invalid completed work");
 
-
-        // close out pending job and remove it from active job id array
-        delete pendingJobs[jobId];
-        for (uint i; i < activeJobIds.length; i++) {
-            if (jobId == activeJobIds[i]) {
-                activeJobIds[i] = activeJobIds[activeJobIds.length - 1];
-                activeJobIds.pop();
-                break;
-            }
-        }
-
-        // submit payment if work was accepted by the customer
         if (acceptWork) {
-            payable(pendingJob.worker).transfer(pendingJob.job.bounty);
+            // pay the worker and clean up job state
+            payable(work.worker).transfer(job.bounty);
+
+            for (uint i; i < activeJobIds.length; i++) {
+                // delete job id from active job ids
+                if (jobId == activeJobIds[i]) {
+                    activeJobIds[i] = activeJobIds[activeJobIds.length - 1];
+                    activeJobIds.pop();
+                    break;
+                }
+            }
+            job.status = JobStatus.Completed;
+            completedJobIds.push(jobId);
+        } else {
+            // delete submitted work, update job state back to open
+            delete submittedWork[jobId];
+            job.status = JobStatus.Open;
         }
     }
 
-    function getAvailableJob(uint jobId) public view returns (JobInformation memory) {
-        require(isAvailableJobId(jobId), "Invalid job id");
-        return availableJobs[jobId];
+    modifier jobExists(uint id) {
+        // Job id should never be zero
+        require(jobs[id].jobId != 0, "Invalid job id");
+        _;
     }
 
-    function getPendingJob(uint jobId) public view returns (PendingCompletedWork memory) {
-        require(isPendingJobId(jobId), "Invalid job id");
-        return pendingJobs[jobId];
-    }
-
-    function isAvailableJobId(uint jobId) private view returns (bool) {
-        return availableJobs[jobId].jobId != 0;
-    }
-
-    function isPendingJobId(uint jobId) private view returns (bool) {
-        return pendingJobs[jobId].job.jobId != 0;
+    function getJob(uint jobId) public view jobExists(jobId) returns (JobInformation memory) {
+        return jobs[jobId];
     }
 
     function getActiveJobCount() public view returns (uint) {
