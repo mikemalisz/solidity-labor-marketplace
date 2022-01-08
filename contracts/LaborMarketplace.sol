@@ -2,23 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "./IdManager.sol";
-
-enum JobStatus { Open, PendingCompletion, Completed }
-
-struct JobInformation {
-    uint jobId;
-    address customer;
-    uint bounty;
-    string name;
-    string description;
-    JobStatus status;
-}
-
-struct CompletedWork {
-    uint jobId;
-    address worker;
-    string data;
-}
+import "./JobInformation.sol";
+import "./CompletedWork.sol";
 
 contract LaborMarketplace {
     IdManager jobIdManager = new IdManager();
