@@ -9,5 +9,6 @@ contract TestLaborMarketplace {
     function testInitialState() public {
         LaborMarketplace sut = new LaborMarketplace();
         Assert.equal(sut.getActiveJobCount(), 0, "Should be no initial active jobs");
+        Assert.equal(sut.getCompletedJobCount(), 0, "Should be no initial active jobs");
     }
 }

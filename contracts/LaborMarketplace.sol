@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "./IdManager.sol";
-import "./JobInformation.sol";
-import "./CompletedWork.sol";
 
 contract LaborMarketplace {
+
+    /* Properties */
+
     IdManager jobIdManager = new IdManager();
 
     uint[] public activeJobIds;
@@ -13,6 +14,8 @@ contract LaborMarketplace {
 
     mapping(uint => JobInformation) jobs;
     mapping(uint => CompletedWork) submittedWork;
+
+    /* Public API */
 
     function createJob(string memory name, string memory description) public payable {
         uint jobId = jobIdManager.createId();
@@ -73,17 +76,42 @@ contract LaborMarketplace {
         }
     }
 
-    modifier jobExists(uint id) {
-        // Job id should never be zero
-        require(jobs[id].jobId != 0, "Invalid job id");
-        _;
-    }
-
     function getJob(uint jobId) public view jobExists(jobId) returns (JobInformation memory) {
         return jobs[jobId];
     }
 
     function getActiveJobCount() public view returns (uint) {
         return activeJobIds.length;
+    }
+
+    function getCompletedJobCount() public view returns (uint) {
+        return activeJobIds.length;
+    }
+
+    /* Utility */
+
+    modifier jobExists(uint id) {
+        // Job id should never be zero
+        require(jobs[id].jobId != 0, "Invalid job id");
+        _;
+    }
+
+    /* Custom types */
+
+    enum JobStatus { Open, PendingCompletion, Completed }
+
+    struct JobInformation {
+        uint jobId;
+        address customer;
+        uint bounty;
+        string name;
+        string description;
+        JobStatus status;
+    }
+
+    struct CompletedWork {
+        uint jobId;
+        address worker;
+        string data;
     }
 }
