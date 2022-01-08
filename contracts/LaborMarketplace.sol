@@ -85,7 +85,7 @@ contract LaborMarketplace {
     }
 
     function getCompletedJobCount() public view returns (uint) {
-        return activeJobIds.length;
+        return completedJobIds.length;
     }
 
     /* Utility */
