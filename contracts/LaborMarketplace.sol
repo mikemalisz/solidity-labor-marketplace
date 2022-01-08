@@ -3,18 +3,27 @@ pragma solidity ^0.8.0;
 
 import "./IdManager.sol";
 
+enum JobState { Available, PendingCompletion }
+
 struct JobInformation {
     uint jobId;
     address customer;
     uint bounty;
     string name;
     string description;
+    JobState state;
 }
 
 struct PendingCompletedWork {
     JobInformation job;
     address worker;
     string work;
+}
+
+struct CompletedWork {
+    uint jobId;
+    address worker;
+    string data;
 }
 
 contract LaborMarketplace {
@@ -32,7 +41,8 @@ contract LaborMarketplace {
                 customer: msg.sender,
                 bounty: msg.value,
                 name: name,
-                description: description
+                description: description,
+                state: JobState.Available
             }
         );
 
