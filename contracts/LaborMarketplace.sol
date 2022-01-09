@@ -80,6 +80,10 @@ contract LaborMarketplace {
         return jobs[jobId];
     }
 
+    function getWork(uint jobId) public view jobExists(jobId) returns (CompletedWork memory) {
+        return submittedWork[jobId];
+    }
+
     function getActiveJobCount() public view returns (uint) {
         return activeJobIds.length;
     }
