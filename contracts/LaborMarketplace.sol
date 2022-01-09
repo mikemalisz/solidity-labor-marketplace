@@ -50,7 +50,8 @@ contract LaborMarketplace {
 
     function completeJob(uint jobId, bool acceptWork) public jobExists(jobId) {
         JobInformation storage job = jobs[jobId];
-        require(job.customer == msg.sender, "Must be job's original customer");
+        require(job.status == JobStatus.PendingCompletion, "Job must be pending completion");
+        require(job.customer == msg.sender, "Caller must be job's original customer");
         
         CompletedWork memory work = submittedWork[jobId];
         require(work.jobId != 0, "Invalid completed work");
